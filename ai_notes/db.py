@@ -13,11 +13,11 @@ def init_db(app):
         # Lightweight SQLite migration: add description column if missing
         try:
             engine = db.engine
-            # Verify table exists and column presence
-            res = engine.execute(text("PRAGMA table_info(task)"))
-            cols = [r[1] for r in res.fetchall()]
-            if "description" not in cols:
-                engine.execute(text("ALTER TABLE task ADD COLUMN description TEXT"))
+            with engine.begin() as conn:
+                res = conn.execute(text("PRAGMA table_info(task)"))
+                cols = [r[1] for r in res.fetchall()]
+                if "description" not in cols:
+                    conn.execute(text("ALTER TABLE task ADD COLUMN description TEXT"))
         except Exception:
             # Best-effort; ignore if not SQLite or already applied
             pass

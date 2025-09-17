@@ -18,10 +18,25 @@
       <div class="mb-2" style="color:#4a5568; white-space:pre-wrap;">{{ task.description }}</div>
       {% endif %}
 
-      <div class="mb-2 small text-muted">
+      <div class="mb-2 small text-muted d-flex align-items-center flex-wrap gap-1">
         {% set pr_cls = 'secondary' %}
         {% if pr == 'high' %}{% set pr_cls = 'warning' %}{% elif pr == 'urgent' %}{% set pr_cls = 'danger' %}{% elif pr == 'low' %}{% set pr_cls = 'secondary' %}{% else %}{% set pr_cls = 'secondary' %}{% endif %}
-        <span class="badge text-bg-{{ pr_cls }} me-1">{{ task.priority }}</span>
+        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
+          <input type="hidden" name="priority" value="low">
+          <button type="submit" class="badge text-bg-secondary border-0">low</button>
+        </form>
+        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
+          <input type="hidden" name="priority" value="medium">
+          <button type="submit" class="badge text-bg-secondary border-0">medium</button>
+        </form>
+        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
+          <input type="hidden" name="priority" value="high">
+          <button type="submit" class="badge text-bg-warning border-0">high</button>
+        </form>
+        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
+          <input type="hidden" name="priority" value="urgent">
+          <button type="submit" class="badge text-bg-danger border-0">urgent</button>
+        </form>
         {% if task.estimated_duration_minutes %}
           <span class="badge text-bg-light border me-1">⏱ {{ task.estimated_duration_minutes }}m</span>
         {% endif %}
@@ -54,9 +69,10 @@
               <textarea class="form-control form-control-sm" name="description" rows="3" placeholder="Description">{{ task.description or '' }}</textarea>
             </div>
             <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-primary" type="submit">Save</button>
-              <a class="btn btn-sm btn-outline-secondary" href="/tasks/{{task.id}}/toggle">{{ 'Reopen' if task.status=='done' else 'Complete' }}</a>
-              <a class="btn btn-sm btn-outline-danger" href="/tasks/{{task.id}}/delete" onclick="return confirm('Delete this task?')">Delete</a>
+              <button class="btn btn-sm btn-primary" type="submit" hx-post="/tasks/{{task.id}}/edit" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">Save</button>
+              <button class="btn btn-sm btn-outline-secondary" type="button" hx-post="/tasks/{{task.id}}/toggle" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">{{ 'Reopen' if task.status=='done' else 'Complete' }}</button>
+              <button class="btn btn-sm btn-outline-secondary" type="button" hx-post="/tasks/{{task.id}}/status" hx-vals='{"status":"in_progress"}' hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">In&nbsp;Progress</button>
+              <button class="btn btn-sm btn-outline-danger" type="button" hx-post="/tasks/{{task.id}}/delete" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" onclick="return confirm('Delete this task?')">Delete</button>
             </div>
           </form>
         </details>
