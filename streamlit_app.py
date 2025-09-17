@@ -46,6 +46,7 @@ def _render_task_card(task):
             <div>{st_badge}</div>
           </div>
           <div style='margin-top:6px;'>{pr_badge}{_badge(dur,'light') if dur else ''}{_badge('📅 '+dl,'light') if dl else ''}</div>
+          {f"<div style='margin-top:6px;color:#4a5568;white-space:pre-wrap;'>{task.description}</div>" if (getattr(task,'description',None)) else ''}
           {f"<div style='margin-top:6px;color:#666;'># " + tags + "</div>" if tags else ''}
           {f"<div style='margin-top:6px;color:#666;'>🔔 Alerts: " + alerts + "</div>" if alerts else ''}
           <div style='margin-top:10px;'>
@@ -93,4 +94,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

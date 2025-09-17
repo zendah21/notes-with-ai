@@ -32,6 +32,26 @@ def toggle_task(task_id: int):
     return redirect(url_for("index"))
 
 
+@bp.post("/tasks/<int:task_id>/edit")
+def edit_task(task_id: int):
+    t = Task.query.get_or_404(task_id)
+    title = (request.form.get("title") or t.title).strip()
+    desc = (request.form.get("description") or "").strip()
+    t.title = title or t.title
+    t.description = desc or None
+    db.session.commit()
+    on_task_changed(t)
+    return redirect(url_for("index"))
+
+
+@bp.get("/tasks/<int:task_id>/delete")
+def delete_task(task_id: int):
+    t = Task.query.get_or_404(task_id)
+    db.session.delete(t)
+    db.session.commit()
+    return redirect(url_for("index"))
+
+
 @bp.route("/tasks/<int:task_id>/row")
 def task_row(task_id: int):
     t = Task.query.get_or_404(task_id)

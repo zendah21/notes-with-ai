@@ -48,3 +48,18 @@ body {
 /* Help page list spacing */
 .container ul { margin-bottom: .75rem; }
 
+/* Priority accents on cards */
+.card.card-pr-low { border-top: 4px solid #cbd5e1; }
+.card.card-pr-medium { border-top: 4px solid #94a3b8; }
+.card.card-pr-high { border-top: 4px solid #f59f00; }
+.card.card-pr-urgent { border-top: 4px solid #e03131; }
+
+/* Details summary styling */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker { display: none }
+details > summary::after {
+  content: "✎";
+  margin-left: .5rem;
+}
