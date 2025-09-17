@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <h3>Using AI Notes</h3>
+    <p class="text-muted">Quick guide to create and manage tasks with natural language.</p>
+
+    <h5>Basics</h5>
+    <ul>
+      <li>Open the AI Console: <a href="/ai/console">/ai/console</a></li>
+      <li>Or use the Command Bar on the home page.</li>
+      <li>Type instructions like “Create ‘call client’ tomorrow 9am, 20m, high, alert 1h”.</li>
+    </ul>
+
+    <h5>Supported Intents</h5>
+    <ul>
+      <li><strong>Create</strong>: “Create ‘Write polite rejection email’, tomorrow 10am, 30m, high, alerts 12h and 1h”</li>
+      <li><strong>Update</strong>: “Move ‘Rise Advisory email’ to Fri 9:30, set in progress, 20m, notify 1h”</li>
+      <li><strong>Complete</strong>: “Mark ‘prepare slides’ done”</li>
+      <li><strong>Reopen</strong>: “Reopen ‘prepare slides’”</li>
+      <li><strong>Delete</strong>: “Delete ‘old draft memo’”</li>
+    </ul>
+
+    <h5>Fields You Can Set</h5>
+    <ul>
+      <li><strong>When</strong>: “tomorrow 10am”, “Fri 9:30” (stored in UTC)</li>
+      <li><strong>Duration</strong>: “20m”, “1h”</li>
+      <li><strong>Priority</strong>: low, medium, high, urgent (asap → urgent)</li>
+      <li><strong>Notifications</strong>: “alerts 12h and 1h”, or “30m before”</li>
+      <li><strong>Status</strong>: pending, in progress, done</li>
+      <li><strong>Tags</strong>: “tag demo, client”</li>
+    </ul>
+
+    <h5>Live Flow</h5>
+    <ul>
+      <li>The server streams phases: thinking → parsed → applied → patch.</li>
+      <li>If multiple tasks match a title, you’ll be asked to choose one.</li>
+      <li>Cards update in place when changes apply.</li>
+    </ul>
+
+    <h5>API (for debugging)</h5>
+    <pre class="bg-light border p-2"><code>POST /api/ai/interpret
+Content-Type: application/json
+{
+  "utterance": "move rise email to friday 9:30, set high, 20m, alert 1h",
+  "context": { "now_tz": "Asia/Kuwait" }
+}
+    </code></pre>
+
+    <h5>Tips</h5>
+    <ul>
+      <li>Use quotes around the task title for accurate targeting, e.g., “Rise email”. Smart quotes “ ” are supported.</li>
+      <li>Prefer concise phrasing: “notify 1h” or “alerts 12h and 1h”.</li>
+      <li>Times are parsed in your timezone and saved as UTC.</li>
+    </ul>
+
+    <a class="btn btn-primary" href="/ai/console">Open AI Console</a>
+    <a class="btn btn-outline-secondary" href="/">Back to Tasks</a>
+  </div>
+</div>
+{% endblock %}
+

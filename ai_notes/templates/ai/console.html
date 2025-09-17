@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>AI Console</h3>
+<div class="row">
+  <div class="col-12 col-lg-8">
+    <div class="input-group mb-2">
+      <input id="utter" class="form-control" placeholder="e.g., Move 'Rise email' to Friday 9:30, 20m, high, alert 1h" />
+      <button id="send" class="btn btn-success">Send</button>
+    </div>
+    <div class="small text-muted">Status: <span id="st">idle</span></div>
+    <div id="clar" class="mt-2"></div>
+    <pre id="log" class="mt-3 bg-white border p-2" style="height: 280px; overflow:auto"></pre>
+  </div>
+</div>
+<script>
+(function(){
+  const utter = document.getElementById('utter');
+  const send = document.getElementById('send');
+  const st = document.getElementById('st');
+  const log = document.getElementById('log');
+  let ws;
+  function ensure(){
+    if (!ws || ws.readyState !== 1){
+      ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/ai');
+      ws.onmessage = (ev)=>{
+        const msg = JSON.parse(ev.data);
+        if (msg.phase) st.textContent = msg.phase;
+        log.textContent += JSON.stringify(msg, null, 2) + "\n";
+        if (msg.phase === 'need_clarification' && Array.isArray(msg.options)){
+          const wrap = document.getElementById('clar');
+          wrap.innerHTML = '<div class="alert alert-info">Choose target: ' + msg.options.map(o => `<button class=\"btn btn-sm btn-outline-primary me-2\" data-id=\"${o.id}\">${o.title}</button>`).join(' ') + '</div>';
+          wrap.querySelectorAll('button').forEach(b => b.addEventListener('click', ()=>{
+            ws.send(JSON.stringify({utterance: utter.value, choose_id: b.getAttribute('data-id'), context:{now_tz:'Asia/Kuwait'}}));
+            wrap.innerHTML = '';
+          }));
+        }
+      };
+    }
+  }
+  send.addEventListener('click', ()=>{
+    ensure();
+    ws.send(JSON.stringify({utterance: utter.value, context:{now_tz:'Asia/Kuwait'}}));
+  });
+})();
+</script>
+{% endblock %}

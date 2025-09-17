@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row mb-4">
+  <div class="col">
+    <form action="/tasks/create" method="post" class="d-flex gap-2">
+      <input class="form-control" name="title" placeholder="Quick add task" />
+      <button class="btn btn-primary">Add</button>
+      <a class="btn btn-outline-secondary" href="/ai/console">AI Console</a>
+    </form>
+  </div>
+  <div class="col-12 mt-3">
+    <div class="input-group">
+      <input id="ai-cmd" class="form-control" placeholder="Try: Move 'Rise email' to Friday 9:30, 20m, high, alert 1h" />
+      <button id="ai-send" class="btn btn-success">AI</button>
+    </div>
+    <small class="text-muted">Status: <span id="ai-status">idle</span></small>
+  </div>
+  <script>
+    (function(){
+      const btn = document.getElementById('ai-send');
+      const input = document.getElementById('ai-cmd');
+      const status = document.getElementById('ai-status');
+      let ws;
+      function ensure(){
+        if (!ws || ws.readyState !== 1){
+          ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/ai');
+      ws.onmessage = (ev)=>{
+        const msg = JSON.parse(ev.data);
+        if (msg.phase === 'thinking') status.textContent = 'thinking';
+        if (msg.phase === 'parsed') status.textContent = 'understood intent: ' + (msg.json.operation || '?');
+        if (msg.phase === 'applied') status.textContent = 'applied task #' + msg.task_id;
+        if (msg.phase === 'patch' && msg.html){
+          const wrap = document.createElement('div');
+          wrap.innerHTML = msg.html.trim();
+          const el = wrap.firstElementChild;
+          const grid = document.getElementById('tasks-grid');
+          if (document.getElementById(el.id)){
+            document.getElementById(el.id).outerHTML = el.outerHTML;
+          } else if (grid) {
+            grid.prepend(el);
+          }
+        }
+        if (msg.phase === 'error') status.textContent = 'error: ' + msg.message;
+        if (msg.phase === 'need_clarification' && Array.isArray(msg.options)){
+          status.textContent = 'need clarification';
+          // basic prompt for now
+          const id = prompt('Multiple matches. Enter task id to target:\n' + msg.options.map(o=> `${o.id}: ${o.title}`).join('\n'));
+          if (id){
+            ws.send(JSON.stringify({utterance: input.value, choose_id: parseInt(id,10), context:{now_tz: 'Asia/Kuwait'}}));
+          }
+        }
+      };
+        }
+      }
+      btn.addEventListener('click', ()=>{
+        ensure();
+        ws.send(JSON.stringify({utterance: input.value, context:{now_tz: 'Asia/Kuwait'}}));
+      });
+    })();
+  </script>
+  <div class="col-12 mt-4">
+    <div id="tasks-grid" class="row">
+      {% for task in tasks %}
+        {% include 'tasks/item_row.html' %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
