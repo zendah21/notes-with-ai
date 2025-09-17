@@ -10,7 +10,12 @@ from ai_notes.sockets.ai_ws import sock, bp as ws_bp
 
 def create_app():
     load_dotenv()
-    app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), "ai_notes", "templates"))
+    base_dir = os.path.dirname(__file__)
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(base_dir, "ai_notes", "templates"),
+        static_folder=os.path.join(base_dir, "ai_notes", "static"),
+    )
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL", "sqlite:///ai_notes.db"
     )
