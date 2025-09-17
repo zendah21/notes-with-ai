@@ -8,18 +8,32 @@
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   </head>
-  <body class="bg-light">
+  <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
         <a class="navbar-brand" href="/">AI Notes</a>
         <div class="ms-auto d-flex gap-2">
           <a class="btn btn-outline-light" href="/help">Help</a>
           <a class="btn btn-outline-info" href="/ai/console">AI Console</a>
+          <button id="theme-toggle" class="btn btn-outline-secondary" type="button" title="Toggle theme">🌗</button>
         </div>
       </div>
     </nav>
     <main class="container my-4">
       {% block content %}{% endblock %}
     </main>
+    <script>
+      (function(){
+        const key='ai-notes-theme';
+        const saved = localStorage.getItem(key);
+        if(saved){ document.documentElement.setAttribute('data-theme', saved); }
+        document.getElementById('theme-toggle')?.addEventListener('click', ()=>{
+          const cur = document.documentElement.getAttribute('data-theme') || 'light';
+          const next = cur === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem(key, next);
+        });
+      })();
+    </script>
   </body>
   </html>

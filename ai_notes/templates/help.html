@@ -1,62 +1,87 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-  <div class="col-lg-8">
-    <h3>Using AI Notes</h3>
-    <p class="text-muted">Quick guide to create and manage tasks with natural language.</p>
+<div class="mb-4 p-4 rounded" style="background: linear-gradient(135deg,#e7f0ff, #f5f7ff); border:1px solid #e6ecf8;">
+  <h2 class="mb-1">Welcome to AI Notes</h2>
+  <div class="text-muted">Create and manage tasks with natural language. Times parse in your local TZ and save as UTC.</div>
+</div>
 
-    <h5>Basics</h5>
-    <ul>
-      <li>Open the AI Console: <a href="/ai/console">/ai/console</a></li>
-      <li>Or use the Command Bar on the home page.</li>
-      <li>Type instructions like “Create ‘call client’ tomorrow 9am, 20m, high, alert 1h”.</li>
-    </ul>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Getting Started</h5>
+        <ul class="mb-0">
+          <li>Open <a href="/ai/console">AI Console</a> to try commands.</li>
+          <li>Or use the command bar on the home page.</li>
+          <li>Use quotes around titles: “Rise email”.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Operations</h5>
+        <ul class="mb-0">
+          <li><strong>Create</strong> new tasks</li>
+          <li><strong>Update</strong> fields (time, priority, etc.)</li>
+          <li><strong>Complete</strong>, <strong>Reopen</strong>, <strong>Delete</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Fields</h5>
+        <ul class="mb-0">
+          <li><strong>When</strong>: “tomorrow 10am”, “Fri 9:30”</li>
+          <li><strong>Duration</strong>: “20m”, “1h”</li>
+          <li><strong>Priority</strong>: low/medium/high/urgent</li>
+          <li><strong>Notifications</strong>: “alerts 12h and 1h”</li>
+          <li><strong>Status</strong>: pending/in progress/done</li>
+          <li><strong>Tags</strong>: “tag demo, client”</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-    <h5>Supported Intents</h5>
-    <ul>
-      <li><strong>Create</strong>: “Create ‘Write polite rejection email’, tomorrow 10am, 30m, high, alerts 12h and 1h”</li>
-      <li><strong>Update</strong>: “Move ‘Rise Advisory email’ to Fri 9:30, set in progress, 20m, notify 1h”</li>
-      <li><strong>Complete</strong>: “Mark ‘prepare slides’ done”</li>
-      <li><strong>Reopen</strong>: “Reopen ‘prepare slides’”</li>
-      <li><strong>Delete</strong>: “Delete ‘old draft memo’”</li>
-    </ul>
-
-    <h5>Fields You Can Set</h5>
-    <ul>
-      <li><strong>When</strong>: “tomorrow 10am”, “Fri 9:30” (stored in UTC)</li>
-      <li><strong>Duration</strong>: “20m”, “1h”</li>
-      <li><strong>Priority</strong>: low, medium, high, urgent (asap → urgent)</li>
-      <li><strong>Notifications</strong>: “alerts 12h and 1h”, or “30m before”</li>
-      <li><strong>Status</strong>: pending, in progress, done</li>
-      <li><strong>Tags</strong>: “tag demo, client”</li>
-    </ul>
-
-    <h5>Live Flow</h5>
-    <ul>
-      <li>The server streams phases: thinking → parsed → applied → patch.</li>
-      <li>If multiple tasks match a title, you’ll be asked to choose one.</li>
-      <li>Cards update in place when changes apply.</li>
-    </ul>
-
-    <h5>API (for debugging)</h5>
-    <pre class="bg-light border p-2"><code>POST /api/ai/interpret
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Examples</h5>
+        <ul class="mb-0">
+          <li>Create “Write polite rejection email” tomorrow 10am, 30m, high, alerts 12h and 1h</li>
+          <li>Move “Rise Advisory email” to Fri 9:30, set in progress, 20m, notify 1h</li>
+          <li>New task “renew car reg” next Monday 8am, urgent, notify 24h/2h/0</li>
+          <li>Mark “prepare slides” done</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">API (Debug)</h5>
+        <pre class="bg-light border p-2 small mb-0">POST /api/ai/interpret
 Content-Type: application/json
 {
   "utterance": "move rise email to friday 9:30, set high, 20m, alert 1h",
   "context": { "now_tz": "Asia/Kuwait" }
-}
-    </code></pre>
+}</pre>
+      </div>
+    </div>
+  </div>
 
-    <h5>Tips</h5>
-    <ul>
-      <li>Use quotes around the task title for accurate targeting, e.g., “Rise email”. Smart quotes “ ” are supported.</li>
-      <li>Prefer concise phrasing: “notify 1h” or “alerts 12h and 1h”.</li>
-      <li>Times are parsed in your timezone and saved as UTC.</li>
-    </ul>
-
-    <a class="btn btn-primary" href="/ai/console">Open AI Console</a>
-    <a class="btn btn-outline-secondary" href="/">Back to Tasks</a>
+  <div class="col-lg-12">
+    <div class="card">
+      <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <span class="badge text-bg-info">Tip</span>
+        <div class="text-muted">If a title matches multiple tasks, you’ll be asked to choose. Smart quotes “ ” work too.</div>
+        <a class="btn btn-sm btn-primary ms-auto" href="/ai/console">Open AI Console</a>
+        <a class="btn btn-sm btn-outline-secondary" href="/">Back to Tasks</a>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
-
