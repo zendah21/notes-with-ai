@@ -1,51 +1,59 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row mb-4">
-  <div class="col">
-    <div class="card">
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between">
+  <div class="mb-2">
+    <h1>Tasks</h1>
+    <div class="muted">Plan, prioritize and schedule your tasks with AI assistance.</div>
+  </div>
+  <div class="d-flex gap-2 mb-2">
+    <a class="btn btn-outline-secondary" href="/help">Help</a>
+    <a class="btn btn-success" href="/ai/console">AI Console</a>
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col-lg-4">
+    <div class="card toolbar">
       <div class="card-body">
-        <form action="/tasks/create" method="post" class="d-flex gap-2">
-          <input class="form-control" name="title" placeholder="Quick add task" />
-          <button class="btn btn-primary">Add</button>
-          <a class="btn btn-outline-secondary" href="/ai/console">AI Console</a>
-          <a class="btn btn-outline-secondary" href="/help">Help</a>
+        <div class="fw-semibold mb-2">Filters</div>
+        <form id="filter-form" class="d-flex flex-column gap-2"
+              hx-get="/" hx-target="#tasks-grid-wrap" hx-select="#tasks-grid-wrap" hx-push-url="true" hx-trigger="change, keyup delay:300ms from:#q">
+          <select class="form-select form-select-sm" name="status" aria-label="Status">
+            <option value="" {{ '' == status_f and 'selected' or '' }}>All statuses</option>
+            <option value="pending" {{ 'pending' == status_f and 'selected' or '' }}>Pending</option>
+            <option value="in_progress" {{ 'in_progress' == status_f and 'selected' or '' }}>In progress</option>
+            <option value="done" {{ 'done' == status_f and 'selected' or '' }}>Done</option>
+          </select>
+          <select class="form-select form-select-sm" name="priority" aria-label="Priority">
+            <option value="" {{ '' == priority_f and 'selected' or '' }}>All priorities</option>
+            <option value="low" {{ 'low' == priority_f and 'selected' or '' }}>Low</option>
+            <option value="medium" {{ 'medium' == priority_f and 'selected' or '' }}>Medium</option>
+            <option value="high" {{ 'high' == priority_f and 'selected' or '' }}>High</option>
+            <option value="urgent" {{ 'urgent' == priority_f and 'selected' or '' }}>Urgent</option>
+          </select>
+          <select class="form-select form-select-sm" name="sort" aria-label="Sort">
+            <option value="deadline" {{ 'deadline' == sort and 'selected' or '' }}>Sort by deadline</option>
+            <option value="created_desc" {{ 'created_desc' == sort and 'selected' or '' }}>Newest first</option>
+            <option value="title" {{ 'title' == sort and 'selected' or '' }}>Title A→Z</option>
+          </select>
+          <input id="q" class="form-control form-control-sm" name="q" value="{{ q_text }}" placeholder="Search title/description" />
+          <a class="btn btn-sm btn-outline-secondary" href="/">Clear</a>
         </form>
       </div>
     </div>
   </div>
-  <div class="col-12 mt-3">
+  <div class="col-lg-8">
     <div class="card">
       <div class="card-body">
-        <div class="input-group mb-2">
+        <form action="/tasks/create" method="post" class="d-flex gap-2 mb-2" aria-label="Quick add task">
+          <input class="form-control" name="title" placeholder="Quick add task" />
+          <button class="btn btn-primary">Add</button>
+        </form>
+        <div class="input-group" aria-label="AI command bar">
           <input id="ai-cmd" class="form-control" placeholder="Try: Move 'Rise email' to Friday 9:30, 20m, high, alert 1h" />
           <button id="ai-send" class="btn btn-success">AI</button>
         </div>
-        <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted">Status: <span id="ai-status">idle</span></small>
-          <form id="filter-form" class="d-flex flex-wrap gap-2"
-                hx-get="/" hx-target="#tasks-grid-wrap" hx-select="#tasks-grid-wrap" hx-push-url="true" hx-trigger="change, keyup delay:300ms from:#q">
-            <select class="form-select form-select-sm" name="status" aria-label="Status">
-              <option value="" {{ '' == status_f and 'selected' or '' }}>All statuses</option>
-              <option value="pending" {{ 'pending' == status_f and 'selected' or '' }}>Pending</option>
-              <option value="in_progress" {{ 'in_progress' == status_f and 'selected' or '' }}>In progress</option>
-              <option value="done" {{ 'done' == status_f and 'selected' or '' }}>Done</option>
-            </select>
-            <select class="form-select form-select-sm" name="priority" aria-label="Priority">
-              <option value="" {{ '' == priority_f and 'selected' or '' }}>All priorities</option>
-              <option value="low" {{ 'low' == priority_f and 'selected' or '' }}>Low</option>
-              <option value="medium" {{ 'medium' == priority_f and 'selected' or '' }}>Medium</option>
-              <option value="high" {{ 'high' == priority_f and 'selected' or '' }}>High</option>
-              <option value="urgent" {{ 'urgent' == priority_f and 'selected' or '' }}>Urgent</option>
-            </select>
-            <select class="form-select form-select-sm" name="sort" aria-label="Sort">
-              <option value="deadline" {{ 'deadline' == sort and 'selected' or '' }}>Sort by deadline</option>
-              <option value="created_desc" {{ 'created_desc' == sort and 'selected' or '' }}>Newest first</option>
-              <option value="title" {{ 'title' == sort and 'selected' or '' }}>Title A→Z</option>
-            </select>
-            <input id="q" class="form-control form-control-sm" name="q" value="{{ q_text }}" placeholder="Search title/description" />
-            <a class="btn btn-sm btn-outline-secondary" href="/">Clear</a>
-          </form>
-        </div>
+        <small class="text-muted">Status: <span id="ai-status">idle</span></small>
       </div>
     </div>
   </div>
@@ -63,15 +71,21 @@
         if (msg.phase === 'thinking') status.textContent = 'thinking';
         if (msg.phase === 'parsed') status.textContent = 'understood intent: ' + (msg.json.operation || '?');
         if (msg.phase === 'applied') status.textContent = 'applied task #' + msg.task_id;
-        if (msg.phase === 'patch' && msg.html){
-          const wrap = document.createElement('div');
-          wrap.innerHTML = msg.html.trim();
-          const el = wrap.firstElementChild;
+        if (msg.phase === 'patch'){
           const grid = document.getElementById('tasks-grid');
-          if (document.getElementById(el.id)){
-            document.getElementById(el.id).outerHTML = el.outerHTML;
-          } else if (grid) {
-            grid.prepend(el);
+          if (msg.html && msg.html.trim().length){
+            const wrap = document.createElement('div');
+            wrap.innerHTML = msg.html.trim();
+            const el = wrap.firstElementChild;
+            if (document.getElementById(el.id)){
+              document.getElementById(el.id).outerHTML = el.outerHTML;
+            } else if (grid) {
+              grid.prepend(el);
+            }
+          } else if (msg.task_id) {
+            const id = 'task-card-' + msg.task_id;
+            const cur = document.getElementById(id);
+            if (cur) cur.remove();
           }
         }
         if (msg.phase === 'error') status.textContent = 'error: ' + msg.message;
@@ -92,7 +106,7 @@
       });
     })();
   </script>
-  <div class="col-12 mt-4" id="tasks-grid-wrap">
+  <div class="col-12 mt-3" id="tasks-grid-wrap">
     <div class="d-flex align-items-center gap-2 mb-2">
       <span class="badge text-bg-secondary">Total: {{ total }}</span>
       <span class="badge text-bg-info">Pending: {{ pending_c }}</span>
@@ -100,7 +114,7 @@
       <span class="badge text-bg-success">Done: {{ done_c }}</span>
       {% if q_text %}<span class="text-muted small">Search: "{{ q_text }}"</span>{% endif %}
     </div>
-    <div id="tasks-grid" class="row">
+    <div id="tasks-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
       {% if tasks %}
         {% for task in tasks %}
           {% include 'tasks/item_row.html' %}

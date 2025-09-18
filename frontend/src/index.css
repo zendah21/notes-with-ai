@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f6f7fb;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--bg); font-family: Inter, ui-sans-serif, system-ui; }
+
+.btn { @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-slate-200 shadow-sm bg-white text-slate-800 hover:bg-slate-50; }
+.btn-primary { @apply bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-600/90; }
+.btn-secondary { @apply bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-50; }
+.btn-ghost { @apply bg-transparent border-transparent hover:bg-slate-100; }
+.btn-success { @apply bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-600/90; }
+

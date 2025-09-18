@@ -21,6 +21,8 @@ class FieldsModel(BaseModel):
     notify_offsets_minutes: Optional[List[int]] = None
     status: Optional[str] = None
     tags: Optional[List[str]] = None
+    description: Optional[str] = None
+    title: Optional[str] = None
 
 
 class ParsedAction(BaseModel):
@@ -138,11 +140,26 @@ class AIRouter:
         nt = self._extract_notifications(utterance)
         if nt is not None:
             fields["notify_offsets_minutes"] = nt
-        dl = self._extract_deadline(utterance, tz)
-        if dl is not None:
-            fields["deadline_utc"] = dl
+        # Ambiguity guard: if the text contains 'maybe' or 'or' between days, skip setting a deadline
+        if not re.search(r"\bmaybe\b|\b(mon|tue|wed|thu|fri|sat|sun)\b\s*or\s*\b(mon|tue|wed|thu|fri|sat|sun)\b", utterance, re.I):
+            # handle 'before Sunday' as end-of-day Sunday
+            m = re.search(r"before\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b", utterance, re.I)
+            if m:
+                try:
+                    dow = m.group(1)
+                    from dateutil import tz as dzt
+                    local_dt = parse_natural_datetime(dow, default_tz=tz)
+                    # set to 23:59 local
+                    local_dt = local_dt.replace(hour=23, minute=59, second=0, microsecond=0)
+                    fields["deadline_utc"] = to_utc_iso(local_dt)
+                except Exception:
+                    pass
+            else:
+                dl = self._extract_deadline(utterance, tz)
+                if dl is not None:
+                    fields["deadline_utc"] = dl
 
-        # NER assist: find tags from MISC
+        # NER assist: find tags from ORG/MISC; also derive description from leftovers
         try:
             ents = hf_ner(utterance)
             tags = sorted({e.get("entity_group") for e in ents if e.get("entity_group") in {"ORG", "MISC"}})
@@ -151,18 +168,30 @@ class AIRouter:
         except Exception:
             pass
 
+        # Lightweight description: remaining text after removing time/duration/notify keywords
+        try:
+            rem = utterance
+            rem = re.sub(r"\b(alerts?|notify|remind|alarm)s?\b[\s\S]*$", "", rem, flags=re.I)
+            rem = re.sub(r"\b(\d+)\s*(h|hour|hours|m|min|minute)s?(\s*(before|prior))?\b", "", rem, flags=re.I)
+            rem = re.sub(r"\b(tomorrow|today|tonight|this\s+afternoon|this\s+evening|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}:\d{2}|\d{1,2}\s*(am|pm))\b", "", rem, flags=re.I)
+            rem = re.sub(r"\s+", " ", rem).strip(" .,-")
+            if rem and len(rem) > 0:
+                fields.setdefault("description", rem)
+        except Exception:
+            pass
+
         return fields
 
     def _t2t_schema(self, utterance: str, tz: str) -> Dict[str, Any]:
         sys = (
             "SYSTEM: Convert the instruction to this JSON schema (no prose):"
-            " {operation, target:{by,value}, fields:{priority,estimated_duration_minutes,deadline_utc,notify_offsets_minutes,status,tags}}"
+            " {operation, target:{by,value}, fields:{priority,estimated_duration_minutes,deadline_utc,notify_offsets_minutes,status,tags,description,title}}"
             f" TIMEZONE={tz}; All final times must be UTC ISO8601.\n"
         )
         user = f'USER: "{utterance}"\n'
         return hf_text2json(sys + user) or {}
 
-    def build_action(self, utterance: str, tz: str, user_id: str) -> Dict[str, Any]:
+    def build_action(self, utterance: str, tz: str, user_id: str, default_title: Optional[str] = None) -> Dict[str, Any]:
         intent = self.infer_intent(utterance)
         target = self.resolve_target(utterance, user_id)
         fields = self.extract_fields(utterance, tz)
@@ -190,6 +219,9 @@ class AIRouter:
         # Default create if no target & intent ambiguous
         if not target and intent not in {"create", "query"}:
             intent = "create"
+        # If creating and no target, use provided default title as best effort
+        if (not target) and intent == "create" and default_title:
+            target = TargetModel(by="title", value=default_title)
 
         # Pydantic validation and shaping
         try:
@@ -231,6 +263,12 @@ class AIRouter:
                 t.tags = ",".join(fields["tags"]) if isinstance(fields["tags"], list) else str(fields["tags"])
             if "status" in fields and fields["status"]:
                 t.status = fields["status"]
+            if "description" in fields and fields["description"]:
+                t.description = str(fields["description"]).strip() or None
+            if "title" in fields and fields["title"]:
+                v = str(fields["title"]).strip()
+                if v:
+                    t.title = v
 
         if op == "create":
             title = (target or {}).get("value") or "New Task"

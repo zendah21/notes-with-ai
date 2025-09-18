@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, Respon
 from .models import Task
 from .db import db
 from .scheduler import on_task_changed
+from .utils.time import parse_natural_datetime, to_utc_iso
 
 bp = Blueprint("routes", __name__)
 
@@ -57,6 +58,62 @@ def set_priority(task_id: int):
         t.priority = val
         db.session.commit()
         on_task_changed(t)
+    if request.headers.get("HX-Request"):
+        return render_template("tasks/item_row.html", task=t)
+    return redirect(url_for("index"))
+
+
+@bp.post("/tasks/<int:task_id>/deadline")
+def set_deadline(task_id: int):
+    tz = request.form.get("tz") or "Asia/Kuwait"
+    text = (request.form.get("deadline_text") or "").strip()
+    t = Task.query.get_or_404(task_id)
+    if text:
+        try:
+            dt = parse_natural_datetime(text, default_tz=tz)
+            from dateutil import tz as dzt
+            t.deadline_utc = dt.astimezone(dzt.UTC).replace(tzinfo=None)
+        except Exception:
+            pass
+    else:
+        t.deadline_utc = None
+    db.session.commit()
+    on_task_changed(t)
+    if request.headers.get("HX-Request"):
+        return render_template("tasks/item_row.html", task=t)
+    return redirect(url_for("index"))
+
+
+@bp.post("/tasks/<int:task_id>/duration")
+def set_duration(task_id: int):
+    t = Task.query.get_or_404(task_id)
+    try:
+        val = int(request.form.get("minutes") or 0)
+        t.estimated_duration_minutes = val or None
+    except Exception:
+        pass
+    db.session.commit()
+    on_task_changed(t)
+    if request.headers.get("HX-Request"):
+        return render_template("tasks/item_row.html", task=t)
+    return redirect(url_for("index"))
+
+
+@bp.post("/tasks/<int:task_id>/alerts")
+def set_alerts(task_id: int):
+    t = Task.query.get_or_404(task_id)
+    raw = (request.form.get("alerts") or "").strip()
+    mins = []
+    if raw:
+        import re
+
+        for m in re.finditer(r"(\d+)\s*(h|hour|hours|m|min|minute)?", raw, re.I):
+            n = int(m.group(1))
+            unit = (m.group(2) or "m").lower()
+            mins.append(n * 60 if unit.startswith("h") else n)
+    t.notify_offsets_minutes = ",".join(str(x) for x in sorted({int(x) for x in mins})) if mins else None
+    db.session.commit()
+    on_task_changed(t)
     if request.headers.get("HX-Request"):
         return render_template("tasks/item_row.html", task=t)
     return redirect(url_for("index"))

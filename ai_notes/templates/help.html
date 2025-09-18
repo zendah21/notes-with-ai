@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="mb-4 p-4 rounded" style="background: linear-gradient(135deg,#e7f0ff, #f5f7ff); border:1px solid #e6ecf8;">
+<div class="mb-4 p-4 rounded" style="background: linear-gradient(135deg,#e7f0ff,#f5f7ff); border:1px solid #e6ecf8;">
   <h2 class="mb-1">Welcome to AI Notes</h2>
-  <div class="text-muted">Create and manage tasks with natural language. Times parse in your local TZ and save as UTC.</div>
+  <div class="text-muted">Create and manage tasks with natural language. We parse dates in your timezone and store them in UTC. Use commas to enter multiple tasks at once.</div>
 </div>
 
 <div class="row g-3">
@@ -11,9 +11,10 @@
       <div class="card-body">
         <h5 class="card-title">Getting Started</h5>
         <ul class="mb-0">
-          <li>Open <a href="/ai/console">AI Console</a> to try commands.</li>
+          <li>Open <a href="/ai/console">AI Console</a> to try commands (streams thinking → parsed → applied).</li>
           <li>Or use the command bar on the home page.</li>
-          <li>Use quotes around titles: “Rise email”.</li>
+          <li>Separate multiple tasks with commas: “Pay bills, call mom, plan trip”.</li>
+          <li>Use quotes for exact titles: “Rise email”. Smart quotes “ ” are fine.</li>
         </ul>
       </div>
     </div>
@@ -35,10 +36,10 @@
       <div class="card-body">
         <h5 class="card-title">Fields</h5>
         <ul class="mb-0">
-          <li><strong>When</strong>: “tomorrow 10am”, “Fri 9:30”</li>
+          <li><strong>When</strong>: “tomorrow 10am”, “Fri 9:30”, “before Sunday”</li>
           <li><strong>Duration</strong>: “20m”, “1h”</li>
           <li><strong>Priority</strong>: low/medium/high/urgent</li>
-          <li><strong>Notifications</strong>: “alerts 12h and 1h”</li>
+          <li><strong>Notifications</strong>: “alerts 12h and 1h”, or “30m before”</li>
           <li><strong>Status</strong>: pending/in progress/done</li>
           <li><strong>Tags</strong>: “tag demo, client”</li>
         </ul>
@@ -55,6 +56,7 @@
           <li>Move “Rise Advisory email” to Fri 9:30, set in progress, 20m, notify 1h</li>
           <li>New task “renew car reg” next Monday 8am, urgent, notify 24h/2h/0</li>
           <li>Mark “prepare slides” done</li>
+          <li>Multiple: Research project asap, giveaway gifts, grade students projects 2pm</li>
         </ul>
       </div>
     </div>
@@ -76,8 +78,8 @@ Content-Type: application/json
   <div class="col-lg-12">
     <div class="card">
       <div class="card-body d-flex flex-wrap gap-2 align-items-center">
-        <span class="badge text-bg-info">Tip</span>
-        <div class="text-muted">If a title matches multiple tasks, you’ll be asked to choose. Smart quotes “ ” work too.</div>
+        <span class="badge text-bg-info">Tips</span>
+        <div class="text-muted">If a title matches multiple tasks, you’ll be asked to choose. For ambiguous days (“maybe Tue or Thu”), the AI leaves the date empty so you can confirm later.</div>
         <a class="btn btn-sm btn-primary ms-auto" href="/ai/console">Open AI Console</a>
         <a class="btn btn-sm btn-outline-secondary" href="/">Back to Tasks</a>
       </div>

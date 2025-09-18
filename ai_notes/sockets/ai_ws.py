@@ -32,49 +32,63 @@ def ai_ws(ws):
             ws.send(json.dumps({"phase": "error", "message": "empty_utterance"}))
             continue
         ws.send(json.dumps({"phase": "thinking"}))
-        parsed = router.build_action(utterance, tz=tz, user_id="demo")
-        if choose_id:
-            parsed["target"] = {"by": "id", "value": int(choose_id)}
-        try:
-            from flask import current_app
-            current_app.logger.info({
-                "ws_ai": {
-                    "utterance": redact_pii(utterance),
-                    "parsed": parsed,
-                }
-            })
-        except Exception:
-            pass
-        ws.send(json.dumps({"phase": "parsed", "json": parsed}))
-        # Clarification: multiple matches by title
-        try:
-            tgt = (parsed.get("target") or {})
-            if tgt.get("by") == "title" and tgt.get("value"):
-                from ..models import Task
-                v = str(tgt.get("value")).lower()
-                matches = Task.query.filter(Task.title.ilike(f"%{v}%")).all()
-                if len(matches) > 1:
-                    ws.send(json.dumps({
-                        "phase": "need_clarification",
-                        "options": [{"id": t.id, "title": t.title} for t in matches],
-                    }))
-                    # wait for next message to receive choose_id
-                    continue
-        except Exception:
-            pass
-        try:
-            task = router.apply_action(parsed)
-        except Exception as e:
-            ws.send(json.dumps({"phase": "error", "message": str(e)}))
-            continue
-        ws.send(json.dumps({"phase": "applied", "task_id": getattr(task, 'id', None)}))
-        # send row patch
-        from flask import current_app
-        with current_app.app_context():
-            from ..models import Task
-            from flask import render_template
+        # Split into fragments (comma, semicolon, or plus as loose list separators)
+        import re as _re
+        fragments = [p.strip() for p in _re.split(r"[,;]|\s\+\s", utterance) if p and p.strip()]
+        if not fragments:
+            fragments = [utterance]
+        fragments = fragments[:10]
 
-            t = Task.query.get(getattr(task, "id", None))
-            if t is not None:
-                html = render_template("tasks/item_row.html", task=t)
-                ws.send(json.dumps({"phase": "patch", "task_id": t.id, "html": html}))
+        def _title_from_fragment(text: str) -> str:
+            t = text.strip()
+            t = _re.sub(r"\b(idk\s+when|maybe|asap)\b", "", t, flags=_re.I)
+            t = _re.sub(r"\b(before\s+\w+)\b", "", t, flags=_re.I)
+            t = _re.sub(r"\b(\d{1,2}:\d{2}|\d{1,2}\s*(am|pm))\b", "", t, flags=_re.I)
+            t = _re.sub(r"\s+", " ", t).strip(" .,-")
+            return t or text.strip()
+
+        for frag in fragments:
+            default_title = _title_from_fragment(frag)
+            parsed = router.build_action(frag, tz=tz, user_id="demo", default_title=default_title)
+            if choose_id:
+                parsed["target"] = {"by": "id", "value": int(choose_id)}
+            try:
+                from flask import current_app
+                current_app.logger.info({
+                    "ws_ai": {
+                        "utterance": redact_pii(frag),
+                        "parsed": parsed,
+                    }
+                })
+            except Exception:
+                pass
+            ws.send(json.dumps({"phase": "parsed", "json": parsed}))
+            # Clarification: multiple matches by title
+            try:
+                tgt = (parsed.get("target") or {})
+                if tgt.get("by") == "title" and tgt.get("value"):
+                    from ..models import Task
+                    v = str(tgt.get("value")).lower()
+                    matches = Task.query.filter(Task.title.ilike(f"%{v}%")).all()
+                    if len(matches) > 1:
+                        ws.send(json.dumps({
+                            "phase": "need_clarification",
+                            "options": [{"id": t.id, "title": t.title} for t in matches],
+                        }))
+                        continue
+            except Exception:
+                pass
+            try:
+                task = router.apply_action(parsed)
+            except Exception as e:
+                ws.send(json.dumps({"phase": "error", "message": str(e)}))
+                continue
+            ws.send(json.dumps({"phase": "applied", "task_id": getattr(task, 'id', None)}))
+            from flask import current_app
+            with current_app.app_context():
+                from ..models import Task
+                from flask import render_template
+                t = Task.query.get(getattr(task, "id", None))
+                if t is not None:
+                    html = render_template("tasks/item_row.html", task=t)
+                    ws.send(json.dumps({"phase": "patch", "task_id": t.id, "html": html}))

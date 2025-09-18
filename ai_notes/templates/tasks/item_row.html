@@ -3,7 +3,7 @@
 {% if pr == 'high' %}{% set card_cls = 'card-pr-high' %}{% elif pr == 'urgent' %}{% set card_cls = 'card-pr-urgent' %}{% elif pr == 'low' %}{% set card_cls = 'card-pr-low' %}{% endif %}
 <div id="task-card-{{ task.id }}" class="col-12 col-md-6 col-lg-4 mb-3">
   <div class="card shadow-sm h-100 {{ card_cls }}">
-    <div class="card-body d-flex flex-column">
+    <div class="card-body d-flex flex-column" aria-label="Task card {{ task.title }}">
       <div class="d-flex align-items-start justify-content-between mb-2">
         <h5 class="card-title mb-0" title="{{ task.title }}">{{ task.title }}</h5>
         <div>
@@ -11,6 +11,7 @@
           {% set st_cls = 'secondary' %}
           {% if st == 'done' %}{% set st_cls = 'success' %}{% elif st == 'in_progress' %}{% set st_cls = 'info' %}{% endif %}
           <span class="badge text-bg-{{ st_cls }}">{{ st.replace('_',' ') }}</span>
+          <span class="hx-indicator spinner-border spinner-border-sm align-text-top" role="status" aria-live="polite" aria-label="Loading"></span>
         </div>
       </div>
 
@@ -18,30 +19,26 @@
       <div class="mb-2" style="color:#4a5568; white-space:pre-wrap;">{{ task.description }}</div>
       {% endif %}
 
-      <div class="mb-2 small text-muted d-flex align-items-center flex-wrap gap-1">
-        {% set pr_cls = 'secondary' %}
-        {% if pr == 'high' %}{% set pr_cls = 'warning' %}{% elif pr == 'urgent' %}{% set pr_cls = 'danger' %}{% elif pr == 'low' %}{% set pr_cls = 'secondary' %}{% else %}{% set pr_cls = 'secondary' %}{% endif %}
-        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
-          <input type="hidden" name="priority" value="low">
-          <button type="submit" class="badge text-bg-secondary border-0">low</button>
-        </form>
-        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
-          <input type="hidden" name="priority" value="medium">
-          <button type="submit" class="badge text-bg-secondary border-0">medium</button>
-        </form>
-        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
-          <input type="hidden" name="priority" value="high">
-          <button type="submit" class="badge text-bg-warning border-0">high</button>
-        </form>
-        <form hx-post="/tasks/{{task.id}}/priority" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="d-inline">
-          <input type="hidden" name="priority" value="urgent">
-          <button type="submit" class="badge text-bg-danger border-0">urgent</button>
-        </form>
+      <div class="mb-2 small text-muted d-flex align-items-center flex-wrap gap-2">
+        <div class="dropdown">
+          {% set pr_label = task.priority or 'medium' %}
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Priority: {{ pr_label }}
+          </button>
+          <ul class="dropdown-menu">
+            {% for opt in ['low','medium','high','urgent'] %}
+            <li>
+              <a class="dropdown-item" href="#" hx-post="/tasks/{{task.id}}/priority" hx-vals='{"priority":"{{ opt }}"}' hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">{{ opt }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
         {% if task.estimated_duration_minutes %}
           <span class="badge text-bg-light border me-1">⏱ {{ task.estimated_duration_minutes }}m</span>
         {% endif %}
         {% if task.deadline_utc %}
-          <span class="badge text-bg-light border">📅 {{ task.deadline_utc.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+          {% set utc_iso = task.deadline_utc.strftime('%Y-%m-%dT%H:%M:%SZ') %}
+          <span class="badge text-bg-light border js-deadline" data-utc="{{ utc_iso }}">📅 {{ task.deadline_utc.strftime('%Y-%m-%d %H:%M') }} UTC</span>
         {% endif %}
       </div>
 
@@ -60,21 +57,53 @@
 
       <div class="mt-auto">
         <details>
-          <summary class="small text-muted" style="cursor:pointer">Edit</summary>
-          <form action="/tasks/{{task.id}}/edit" method="post" class="mt-2">
+          <summary class="small text-muted" style="cursor:pointer" aria-label="Edit and schedule">Edit & Schedule</summary>
+          <form action="/tasks/{{task.id}}/edit" method="post" class="mt-2 mb-2" hx-post="/tasks/{{task.id}}/edit" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">
             <div class="mb-2">
-              <input class="form-control form-control-sm" name="title" value="{{ task.title }}" placeholder="Title" />
+              <input class="form-control form-control-sm" name="title" value="{{ task.title }}" placeholder="Title" aria-label="Title" />
             </div>
             <div class="mb-2">
-              <textarea class="form-control form-control-sm" name="description" rows="3" placeholder="Description">{{ task.description or '' }}</textarea>
+              <textarea class="form-control form-control-sm" name="description" rows="3" placeholder="Description" aria-label="Description">{{ task.description or '' }}</textarea>
             </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-primary" type="submit" hx-post="/tasks/{{task.id}}/edit" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">Save</button>
-              <button class="btn btn-sm btn-outline-secondary" type="button" hx-post="/tasks/{{task.id}}/toggle" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">{{ 'Reopen' if task.status=='done' else 'Complete' }}</button>
-              <button class="btn btn-sm btn-outline-secondary" type="button" hx-post="/tasks/{{task.id}}/status" hx-vals='{"status":"in_progress"}' hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">In&nbsp;Progress</button>
-              <button class="btn btn-sm btn-outline-danger" type="button" hx-post="/tasks/{{task.id}}/delete" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" onclick="return confirm('Delete this task?')">Delete</button>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <button class="btn btn-sm btn-primary" type="submit">Save</button>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Actions
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" hx-post="/tasks/{{task.id}}/toggle" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">{{ 'Reopen' if task.status=='done' else 'Complete' }}</a></li>
+                  <li><a class="dropdown-item" href="#" hx-post="/tasks/{{task.id}}/status" hx-vals='{"status":"in_progress"}' hx-target="#task-card-{{task.id}}" hx-swap="outerHTML">Set in progress</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger" href="#" hx-post="/tasks/{{task.id}}/delete" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" onclick="return confirm('Delete this task?')">Delete</a></li>
+                </ul>
+              </div>
             </div>
           </form>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <form hx-post="/tasks/{{task.id}}/deadline" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="input-group input-group-sm" aria-label="Set deadline">
+                <span class="input-group-text">📅</span>
+                <input class="form-control" name="deadline_text" placeholder="e.g., Fri 9:30 or tomorrow 10am" aria-label="Deadline" />
+                <input type="hidden" name="tz" value="Asia/Kuwait" />
+                <button class="btn btn-outline-primary" type="submit">Set</button>
+              </form>
+            </div>
+            <div class="col-md-3">
+              <form hx-post="/tasks/{{task.id}}/duration" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="input-group input-group-sm" aria-label="Set duration">
+                <span class="input-group-text">⏱</span>
+                <input class="form-control" type="number" min="0" step="5" name="minutes" placeholder="mins" aria-label="Minutes" />
+                <button class="btn btn-outline-primary" type="submit">Set</button>
+              </form>
+            </div>
+            <div class="col-md-3">
+              <form hx-post="/tasks/{{task.id}}/alerts" hx-target="#task-card-{{task.id}}" hx-swap="outerHTML" class="input-group input-group-sm" aria-label="Set alerts">
+                <span class="input-group-text">🔔</span>
+                <input class="form-control" name="alerts" placeholder="e.g., 1h, 30m" aria-label="Alerts" />
+                <button class="btn btn-outline-primary" type="submit">Set</button>
+              </form>
+            </div>
+          </div>
         </details>
       </div>
     </div>
